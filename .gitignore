@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+
+# created figures
+figures/
+
+# pickled scenario results (file size too large, but available on request)
+pickled_scenario_results/
