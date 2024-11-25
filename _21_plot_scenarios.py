@@ -466,9 +466,9 @@ def plot_timeline_results(flight_start_year,flight_end_year, folder, all_scenari
                       ['ReFuelEU extended', True, 'mid']]
     h2ac_scenarios = ['high','mid','low']
     
-    ac_scenario_names = ['high-performance AC \n with high growth',
-                         'mid-performance AC \n with low growth',
-                         'low-performance AC \n with degrowth']
+    ac_scenario_names = ['breakthrough AC technology \n with high growth',
+                         'optimistic AC technology \n with low growth',
+                         'business-as-usual AC technology \n with degrowth']
     ac_scenarios = [['high',False,'high growth'],
                     ['mid',False,'low growth'],
                     ['low',False,'degrowth']]

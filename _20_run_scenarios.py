@@ -401,20 +401,20 @@ years_graph = list(range(flight_start_year,flight_end_year + 1))
 # create plots for main results sections
 plot_timeline_results(flight_start_year, flight_end_year, folder_figures, all_scenario_names, all_scenario_results, folder_csvs)
 
-# create heatmaps to check emission targets
-heat_map_df_1, heat_map_df_2, heat_map_df_3, heat_map_df_4 = make_target_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names, all_scenario_results)
-plot_target_heat_map(heat_map_df_1, heat_map_df_2, heat_map_df_3, heat_map_df_4, folder_figures)
-# create four big plots for foreground sensitivity analysis
-heat_map_foreground_df_1, heat_map_foreground_df_2, heat_map_foreground_df_3, heat_map_foreground_df_4 = make_foreground_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names, all_scenario_results)
-plot_foreground_heat_map(heat_map_foreground_df_1, heat_map_foreground_df_2, heat_map_foreground_df_3, heat_map_foreground_df_4, folder_figures)
-# create nine 2x2 plots for background sensitivity analysis
-for background in ['1.4C', '1.7C', '2.5C']:
-    for hydrogen_source in ['market', 'grid', 'wind']:
-        heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4 = make_background_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names_bck, all_scenario_results_bck, background, hydrogen_source)
-        plot_background_heat_map(heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4, folder_figures, background, hydrogen_source)
+# # create heatmaps to check emission targets
+# heat_map_df_1, heat_map_df_2, heat_map_df_3, heat_map_df_4 = make_target_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names, all_scenario_results)
+# plot_target_heat_map(heat_map_df_1, heat_map_df_2, heat_map_df_3, heat_map_df_4, folder_figures)
+# # create four big plots for foreground sensitivity analysis
+# heat_map_foreground_df_1, heat_map_foreground_df_2, heat_map_foreground_df_3, heat_map_foreground_df_4 = make_foreground_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names, all_scenario_results)
+# plot_foreground_heat_map(heat_map_foreground_df_1, heat_map_foreground_df_2, heat_map_foreground_df_3, heat_map_foreground_df_4, folder_figures)
+# # create nine 2x2 plots for background sensitivity analysis
+# for background in ['1.4C', '1.7C', '2.5C']:
+#     for hydrogen_source in ['market', 'grid', 'wind']:
+#         heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4 = make_background_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names_bck, all_scenario_results_bck, background, hydrogen_source)
+#         plot_background_heat_map(heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4, folder_figures, background, hydrogen_source)
 
 # create two additional plots to visualise RPK and AAF trajectories
-plotting_rpk_aaf = True
+plotting_rpk_aaf = False
 if plotting_rpk_aaf == True:
     fig_name_rpk_aaf = 'Fig1_rpk_aaf_overview'
     colours = [LU_turqoise, LU_green, LU_orange, LU_red, LU_light_blue, LU_violet]
