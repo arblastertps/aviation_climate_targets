@@ -242,7 +242,7 @@ def define_AC_performance(tech_improvements):
     return NB_upcoming_improvement, NB_future_improvement, WB_upcoming_improvement, WB_future_improvement
 # define technological performance of future H2-powered aircraft
 def define_HC_performance(tech_improvements):
-    # values are relative to the performance of the initial generation of aircraft
+    # values are relative to the performance of the contemporary hydrocarbon-powered aircraft 
     if tech_improvements == 'low': # low progress from LTAG
         NB_upcoming_H2_change = 1.2
         NB_future_H2_change = 1.2
