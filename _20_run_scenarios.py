@@ -414,9 +414,9 @@ for background in ['1.4C', '1.7C', '2.5C']:
         plot_background_heat_map(heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4, folder_figures, background, hydrogen_source)
 
 # create two additional plots to visualise RPK and AAF trajectories
-plotting_rpk_aaf = False
+plotting_rpk_aaf = True
 if plotting_rpk_aaf == True:
-    fig_name_rpk_aaf = 'Fig1_rpk_aaf_overview'
+    fig_name_rpk_aaf = 'Fig2_rpk_aaf_overview'
     colours = [LU_turqoise, LU_green, LU_orange, LU_red, LU_light_blue, LU_violet]
     fig, (ax_rpk, ax_aaf) = plt.subplots(1,2,gridspec_kw={'width_ratios':[1,1]},figsize = (8,3))
     

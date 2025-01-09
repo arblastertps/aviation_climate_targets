@@ -566,7 +566,7 @@ def plot_timeline_results(flight_start_year,flight_end_year, folder, all_scenari
     alpha = 1
     
     # first figure: CO2 & RF results
-    fig1_name = 'Fig3_results_impacts'
+    fig1_name = 'Fig1_results_impacts'
     fig, (ax1, ax2) = plt.subplots(1,2,gridspec_kw={'width_ratios':[1,1]},figsize = (8,6))
     ax1.plot(years_graph, np.array(max_line)/1e9, linestyle=':', color='#000000', lw = 2, alpha = 1)
     ax2.plot(years_graph, RF_CO2_target, linestyle=':', color='#000000', lw = 2, alpha = 1)
@@ -703,7 +703,7 @@ def plot_timeline_results(flight_start_year,flight_end_year, folder, all_scenari
     df.to_csv(csv_file_name, index=False) 
     
     # third figure: fuel demands
-    fig3_name = 'Fig2_results_fuels'
+    fig3_name = 'Fig3_results_fuels'
     fig_3, axs_3 = plt.subplots(3,1,figsize = (6,8))
     for i in range(len(ac_scenarios)):
         for j in range(len(fuel_scenarios)):
