@@ -8,8 +8,10 @@ First, files containing python scripts, being:
 - `_10_functions.py`
 - `_11_define_scenarios.py`
 - `_12_LWE_function.py`
+- `_13_GWPstar_functions.py`
 - `_20_run_scenarios.py`
 - `_21_plot_scenarios.py`
+- `_22_handle_plots.ipynb`
 
 Secondly, files describing the packages present in the environments used to originally execute the python scripts:
 - `env-premise.yml`

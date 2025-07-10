@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import os
 import pickle 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -186,7 +185,7 @@ aircraft_names_1p4C, aircraft_dataframes_yearly_1p4C, plant_names_1p4C, plant_da
 hydrogen_method = 'fleet'
 hydrogen_method = 'process'
 
-#%% run selected scenario(s) -- takes around 20-30 seconds per scenario, depending on hardware
+#%% run selected scenario(s) -- takes 10-30 seconds per scenario, depending on hardware
 
 # define scenario variables considered
 # note: some of these variables are overwritten when performing "background sensitivity"
@@ -203,8 +202,8 @@ hydrogen_impl = [True, False]
 
 # determine which sets of scenario combinations are executed
 # both should be set to False if provided .pkl files are being used
-foreground_sensitivity = False
-background_sensitivity = False
+foreground_sensitivity = True
+background_sensitivity = True
 
 if foreground_sensitivity == True:
     i = 0
@@ -362,148 +361,3 @@ if background_sensitivity == True:
     with open('pickled_scenario_results/scenario_names_bck.pkl', 'wb') as f:
         pickle.dump(all_scenario_names_bck, f)
         f.close()
-
-#%% load .pkl files
-
-with open('pickled_scenario_results/scenario_results_bck.pkl', 'rb') as f:
-    all_scenario_results_bck = pd.Series(pickle.load(f))
-with open('pickled_scenario_results/scenario_names_bck.pkl', 'rb') as f:
-    all_scenario_names_bck = pd.Series(pickle.load(f))
-    
-with open('pickled_scenario_results/scenario_results.pkl', 'rb') as f:
-    all_scenario_results = pd.Series(pickle.load(f))
-with open('pickled_scenario_results/scenario_names.pkl', 'rb') as f:
-    all_scenario_names = pd.Series(pickle.load(f))
-
-#%% prepare variables used to plot results
-LU_red = '#be1908'
-LU_orange = '#f46e32'
-LU_turqoise = '#34a3a9'
-LU_light_blue = '#5cb1eb'
-LU_violet = '#b02079'
-LU_green = '#2c712d'
-LU_blue = '#001158'
-
-# the original figures use the font Minion Pro, but a more common font such as Georgia also works
-plt.rcParams['font.family'] = 'Minion Pro'
-
-folder_figures = 'figures/'
-folder_csvs = 'figures_data/'
-
-if not os.path.isdir(folder_figures): os.makedirs(folder_figures)
-if not os.path.isdir(folder_csvs): os.makedirs(folder_csvs)
-
-#%% plot the final figures
-# comment out lines to select which figures to generate
-year_of_interest = 2070 # the year in which emission targets are evaluated (always compared to 2050)
-years_graph = list(range(flight_start_year,flight_end_year + 1))
-
-# create plots for main results sections
-plot_timeline_results(flight_start_year, flight_end_year, folder_figures, all_scenario_names, all_scenario_results, folder_csvs)
-
-# create heatmaps to check emission targets
-heat_map_df_1, heat_map_df_2, heat_map_df_3, heat_map_df_4 = make_target_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names, all_scenario_results)
-plot_target_heat_map(heat_map_df_1, heat_map_df_2, heat_map_df_3, heat_map_df_4, folder_figures)
-# create four big plots for foreground sensitivity analysis
-heat_map_foreground_df_1, heat_map_foreground_df_2, heat_map_foreground_df_3, heat_map_foreground_df_4 = make_foreground_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names, all_scenario_results)
-plot_foreground_heat_map(heat_map_foreground_df_1, heat_map_foreground_df_2, heat_map_foreground_df_3, heat_map_foreground_df_4, folder_figures)
-# create nine 2x2 plots for background sensitivity analysis
-for background in ['1.4C', '1.7C', '2.5C']:
-    for hydrogen_source in ['market', 'grid', 'wind']:
-        heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4 = make_background_heat_map(year_of_interest, flight_start_year, flight_end_year, all_scenario_names_bck, all_scenario_results_bck, background, hydrogen_source)
-        plot_background_heat_map(heat_map_background_df_1, heat_map_background_df_2, heat_map_background_df_3, heat_map_background_df_4, folder_figures, background, hydrogen_source)
-
-# create two additional plots to visualise RPK and AAF trajectories
-plotting_rpk_aaf = True
-if plotting_rpk_aaf == True:
-    fig_name_rpk_aaf = 'Fig2_rpk_aaf_overview'
-    colours = [LU_turqoise, LU_green, LU_orange, LU_red, LU_light_blue, LU_violet]
-    fig, (ax_rpk, ax_aaf) = plt.subplots(1,2,gridspec_kw={'width_ratios':[1,1]},figsize = (8,3))
-    
-    # lines for plotting RPK
-    fuel_scenarios = [['no ReFuelEU', False, 'low']]
-    ac_scenarios = [['mid',False,'high growth'],
-                    ['mid',False,'base growth'],
-                    ['mid',False,'low growth'],
-                    ['mid',False,'degrowth']]
-    background = '1.7C'
-    hydrogen_source = 'grid'
-    
-    scenarios_rpk_per_aircraft = [[0 for i in range(len(fuel_scenarios))] for j in range(len(ac_scenarios))]
-    for i in range(len(ac_scenarios)):
-        ac_tech = ac_scenarios[i][0]
-        ops_imp = ac_scenarios[i][1]
-        growth =  ac_scenarios[i][2]
-        for j in range(len(fuel_scenarios)):
-            aaf_impl = fuel_scenarios[j][0]
-            h2ac_impl = fuel_scenarios[j][1]
-            aaf_tech =  fuel_scenarios[j][2]
-            h2ac_tech = 'low'
-            scenario_name_here = scenario_name_generator(background, hydrogen_source, growth, ac_tech, h2ac_tech, aaf_tech, ops_imp, aaf_impl, h2ac_impl)
-            scenario_result_here = retrieve_scenario_results(scenario_name_here, all_scenario_names, all_scenario_results)
-            scenarios_rpk_per_aircraft[i][j] = scenario_result_here[13]
-                
-    for i in range(len(ac_scenarios)):
-        for j in range(len(fuel_scenarios)):
-            ax_rpk.plot(years_graph, scenarios_rpk_per_aircraft[i][j].sum(axis=1)/1e12, color=colours[i], lw = 1, alpha = 1)
-
-    # lines for plotting AAF
-    aaf_timeline_as_is      = aaf_share_for_plt('ReFuelEU base', 2024, 2070)
-    aaf_timeline_extended   = aaf_share_for_plt('ReFuelEU extended', 2024, 2070)
-    
-    ax_aaf.plot(years_graph, aaf_timeline_extended, color=colours[2], lw = 1, alpha = 1)
-    ax_aaf.plot(years_graph, aaf_timeline_as_is, color=colours[0], lw = 1, alpha = 1, linestyle = '--')
-    
-    # formatting plots
-    ax_rpk.set_title('(b) Air traffic volume [$\mathregular{10^{12}}$ RPK]', fontweight="bold", fontsize=14)
-    ax_aaf.set_title('(c) Alternative aviation fuel share [%]', fontweight="bold", fontsize=14)
- 
-    ax_rpk.set_ylim(bottom=0)  
-    ax_aaf.set_ylim(0,101) 
-    ax_rpk.set_xlim(2024,2070)
-    ax_aaf.set_xlim(2024,2070)
-    
-    # make legend
-    handles, labels = ax_rpk.get_legend_handles_labels()
-    rpk_names = ['high growth', 'base growth', 'low growth', 'degrowth']
-    for j in range(len(rpk_names)):
-        label = rpk_names[j].replace('\n ','')
-        linestyle = '-'
-        labels.append(label)
-        handles.append(Line2D([0,1],[0,1],linestyle=linestyle, color=colours[j], lw=1))
-    by_label = dict(zip(labels, handles))
-    ax_rpk.legend(by_label.values(), by_label.keys(), loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=2, frameon=False)
-    
-    handles, labels = ax_aaf.get_legend_handles_labels()
-    labels.append('ReFuelEU Aviation as-is')
-    labels.append('ReFuelEU Aviation extended')
-    handles.append(Line2D([0,1],[0,1],linestyle='--', color=colours[0], lw=1))
-    handles.append(Line2D([0,1],[0,1],linestyle='-', color=colours[2], lw=1))
-    by_label = dict(zip(labels, handles))
-    ax_aaf.legend(by_label.values(), by_label.keys(), loc='upper center', bbox_to_anchor=(0.5, -0.1), ncol=1, frameon=False)
-    
-    plt.subplots_adjust(wspace=0.15)
-    fig_name = folder_figures+fig_name_rpk_aaf+'.pdf'
-    fig.savefig(fig_name,bbox_inches='tight')
-    fig_name = folder_figures+fig_name_rpk_aaf+'.png'
-    fig.savefig(fig_name,bbox_inches='tight',dpi=600)
-
-    # create and save figure data
-    data = {
-        "Year": years_graph,
-        "AAF share, ReFuelEU Aviation as-is": aaf_timeline_as_is,
-        "AAF share, ReFuelEU Aviation extended": aaf_timeline_extended
-    }
-
-    ac_scenario_names = ['high growth',
-                    'base growth',
-                    'low growth',
-                    'degrowth']
-    for i in range(len(ac_scenarios)):
-        for j in range(len(fuel_scenarios)):
-            data[f"Air traffic volume [RPK] - {ac_scenario_names[i]}"] = scenarios_rpk_per_aircraft[i][j].sum(axis=1).reset_index(drop=True)
-
-    df = pd.DataFrame(data)
-
-    csv_file_name = folder_csvs+fig_name_rpk_aaf+'.csv'
-    df.to_csv(csv_file_name, index=False) 

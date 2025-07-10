@@ -21,11 +21,12 @@ def EFmod(nyr,a):
 
     return toeplitz(Fcal, np.zeros_like(Fcal))
 
-def emissions_to_LWE(df, start, end):
+def emissions_to_LWE(df_emissions, start, end):
     # Radiative forcing for SLCPs
     # mW/m^2/Mt
 
     # we rename the columns for simplicity
+    df = df_emissions.copy()
     df.columns = ['Tg/year', 'HFC-152a', 'H',
                    'HCFC-140', 'HCFC-22', 'CH4', 'HFC-134a', 'R-10',
                    'HFC-125', 'CFC-11', 'HFC-143a', 'CFC-113',
@@ -109,7 +110,7 @@ def emissions_to_LWE(df, start, end):
         "CFC-11": 137.37 / 1e3,
         "HFC-143a": 84.04 / 1e3,
         "CFC-113": 187.375 / 1e3,
-        'NOx': 46/1e3, # changed from 14 to 46 -- but it isn't even used so, it doesn't matter
+        'NOx': 14/1e3,
         'BC': 12/1e3, 
         'SOx': 64/1e3, 
         'H2O': 18/1e3,

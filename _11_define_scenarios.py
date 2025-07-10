@@ -7,69 +7,74 @@ from _10_functions import *
 def rpk_from_growth_scenario(y_init, y_start, y_end, rpk_buckets, growth_scenario):
     # growth scenarios
     # all values are given relative to 2019 (= 1)
+    # EUROCONTROL scenarios based on 7-year forecast (Spring 2025 update), using Total en-route Service Units (TSU) to approximate RPK
+    # after 2031, the annual growth rate of the EUROCONTROL long-term forecast (2024 update) is used up to 2070
+    value2019 = 167
     if growth_scenario == 'high growth':
-        # list obtained by combining EUROCONTROl data as described in text
-        growth_list = [1, # 2019
-                        0.43,
-                        0.54,
-                        0.87,
-                        1.01,
-                        1.14,
-                        1.18,
-                        1.22,
-                        1.26,
-                        1.31,
-                        1.34] # 2029
-        growth_rate = 0.018 # 2030 and onward
+        growth_list = [167, # 2019
+                       71,
+                       90,
+                       146,
+                       167,
+                       178,
+                       193,
+                       203,
+                       211,
+                       220,
+                       227,
+                       235,
+                       242] # 2031
+        growth_list = (np.array(growth_list) / value2019).tolist()
+        growth_rate = 0.022 # 2032 and onward
     if growth_scenario == 'base growth':
-        # list obtained by combining EUROCONTROl data as described in text
-        growth_list = [1, # 2019
-                    0.43,
-                    0.54,
-                    0.87,
-                    1.00,
-                    1.08,
-                    1.11,
-                    1.14,
-                    1.16,
-                    1.19,
-                    1.20] # 2029
-        growth_rate = 0.012 # 2030 and onward
+        growth_list = [167, # 2019
+                       71,
+                       90,
+                       146,
+                       167,
+                       178,
+                       187,
+                       193,
+                       198,
+                       203,
+                       207,
+                       211,
+                       215] # 2031
+        growth_list = (np.array(growth_list) / value2019).tolist()
+        growth_rate = 0.016 # 2032 and onward
         
     if growth_scenario == 'low growth':
-        # list obtained by combining EUROCONTROl data as described in text
-        growth_list = [1, # 2019
-                        0.43,
-                        0.54,
-                        0.87,
-                        0.98,
-                        1.03,
-                        1.04,
-                        1.05,
-                        1.06,
-                        1.07,
-                        1.07] # 2029
-        growth_rate = 0.006 # 2030 and onward
+        growth_list = [167, # 2019
+                       71,
+                       90,
+                       146,
+                       167,
+                       178,
+                       180,
+                       183,
+                       184,
+                       186,
+                       187,
+                       187,
+                       188] # 2031
+        growth_list = (np.array(growth_list) / value2019).tolist()
+        growth_rate = 0.007 # 2032 and onward
     
     if growth_scenario == 'degrowth':
-        # list obtained by combining EUROCONTROl data (2019-2023) with degrowth scenario as described in text
-        growth_list = [1, # 2019
-                        0.43,
-                        0.54,
-                        0.87,
-                        0.98,
-                        0.95,
-                        0.92,
-                        0.90,
-                        0.87,
-                        0.84,
-                        0.82,
-                        0.79,
-                        0.77,
-                        0.75,
-                        0.72,
-                        0.70] # 2034
-        growth_rate = 0 # 2035 and onward
+        # list obtained by combining EUROCONTROl data (2019-2024) with degrowth scenario as described in text
+        value2024 = 178
+        value2035 = value2019*0.7
+        dtime = 2035 - 2024
+        dvalue = (value2035 - value2024) / dtime
+        growth_list = [167, # 2019
+                       71,
+                       90,
+                       146,
+                       167,
+                       *[value2024 + i * dvalue for i in range(0, dtime + 1)] # 2024 to 2035
+        ]
+        growth_list = (np.array(growth_list) / value2019).tolist()
+        growth_rate = 0 # 2036 and onward
         
     # the chosen growth scenario is used to transform the RPK buckets into a timeline list
     rpk_lists = []

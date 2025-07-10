@@ -3,10 +3,11 @@ import numpy as np
 import logging
 logging.basicConfig(level=logging.INFO)
 from _12_LWE_function import *
+from _13_GWPstar_functions import * 
 
 #%% define how the string is constructed to name aircraft (a combination of aircraft name and year of datapoint)
 def format_scenario_name(aircraft, year):
-    # what this string looks like is arbitraty -- all that matters is that it's consistent
+    # what this string looks like is arbitrary -- all that matters is that it's consistent
     string = str(aircraft)+', '+str(int(year))
     return string
 
@@ -457,7 +458,7 @@ def impact_cat_result(LCIA_result, impact_cat):
 
 #%% cirrus calculator: calculate how much cirrus is produced
 # expressed in fossil cirrus km-eq, so relative to the RF which would be caused by aircraft flying on fossil kerosene
-def cirrus_calc(hydrogen_share, saf_share, fleet, aircraft_char, cirrus_rf_change_h2):
+def cirrus_calc(hydrogen_share, saf_share, fleet, aircraft_char, cirrus_rf_change_h2, no_aaf_change=False):
     h2_fossil = 13.73 # hydrogen content of fossil kerosene
     h2_saf = 15.29 # hydrogen content of SAF
     # estimate of ice particle number based on fuel mix
@@ -469,15 +470,123 @@ def cirrus_calc(hydrogen_share, saf_share, fleet, aircraft_char, cirrus_rf_chang
     cirrus_rf_change = 1 - 0.048*19.2**ice_particles_change
     distance_total = fleet*aircraft_char.loc['yearly distance']
     # figure out how much the km-eq value is based on distance of hydrocarbon aircraft
-    cirrus_eq = []
     aircraft_char = aircraft_char.T
     hc_aircraft = aircraft_char.loc[aircraft_char['fuel type'].isin(['hydrocarbon'])].index
     h2_aircraft = aircraft_char.loc[aircraft_char['fuel type'].isin(['hydrogen'])].index
-    for i in range(len(distance_total)):
-        cirrus_here = distance_total.iloc[i].loc[hc_aircraft].sum()*cirrus_rf_change[i] + distance_total.iloc[i].loc[h2_aircraft].sum()*cirrus_rf_change_h2
-        cirrus_eq.append(cirrus_here)
-    
+    if no_aaf_change == False:
+        cirrus_eq = []
+        for i in range(len(distance_total)):
+            cirrus_here = distance_total.iloc[i].loc[hc_aircraft].sum()*cirrus_rf_change[i] + distance_total.iloc[i].loc[h2_aircraft].sum()*cirrus_rf_change_h2
+            cirrus_eq.append(cirrus_here)
+    # sensitivity analysis which assumes that AAF does not influence cirrus impacts
+    if no_aaf_change == True:
+        cirrus_eq = []
+        for i in range(len(distance_total)):
+            cirrus_here = distance_total.iloc[i].sum()
+            cirrus_eq.append(cirrus_here)
+
     return cirrus_eq
+
+def calc_cirrus_change(saf_share, fleet, aircraft_char, cirrus_rf_change_h2, no_aaf_change=False):
+    if no_aaf_change == True: cirrus_change = pd.Series([1]*len(fleet))
+    else: 
+        h2_fossil = 13.73 # hydrogen content of fossil kerosene
+        h2_saf = 15.29 # hydrogen content of SAF
+        # estimate of ice particle number based on fuel mix
+        mix = np.array(saf_share)
+        h2_mix = h2_fossil*(1-mix) + h2_saf*mix
+        ice_particles = 9.407e23*np.e**(np.log(0.2475)*h2_mix)
+        # based on estimated change in ice particles, estimate change in cirrus RF
+        ice_particles_change = 1 - ice_particles/ice_particles[0]
+        cirrus_rf_change = 1 - 0.048*19.2**ice_particles_change
+        distance_total = fleet*aircraft_char.loc['yearly distance']
+        # figure out how much the km-eq value is based on distance of hydrocarbon aircraft
+        aircraft_char = aircraft_char.T
+        hc_aircraft = aircraft_char.loc[aircraft_char['fuel type'].isin(['hydrocarbon'])].index
+        h2_aircraft = aircraft_char.loc[aircraft_char['fuel type'].isin(['hydrogen'])].index
+        hc_distance = distance_total[hc_aircraft].sum(axis=1)
+        h2_distance = distance_total[h2_aircraft].sum(axis=1)
+        cirrus_change = (
+            hc_distance.values * cirrus_rf_change + 
+            h2_distance.values * cirrus_rf_change_h2
+        ) / distance_total.sum(axis=1).values
+
+    return pd.Series(cirrus_change)
+
+def perform_GWPstar_calc(flight_start_year, flight_end_year, lwe_input, distance_total, fuel_effect_correction_contrails):
+    # prepare objects
+    params = ModelParameters(flight_start_year, flight_end_year)
+    ERF_co2 = SimplifiedERFCo2(parameters=params)
+    ERF_nox = ERFNox(parameters=params)
+    ERF_other = ERFOthers(parameters=params)
+    ERF_extra = ERFExtra(parameters=params)
+    years = ERF_co2.years
+
+    # extract emissions, including contrail fuel correction -- note that emissions should be in Tg, except for contrails (km)
+    co2_emissions = pd.Series((lwe_input.iloc[:, 12].values + lwe_input.iloc[:, 13].values)* 1e-9, index=years)
+    nox_emissions = pd.Series(lwe_input.iloc[:, 14].values * 1e-9, index=years)
+    soot_emissions = pd.Series(lwe_input.iloc[:, 15].values * 1e-9, index=years)
+    h2o_emissions = pd.Series(lwe_input.iloc[:, 17].values * 1e3 * 1e-9, index=years) # from m3 to Tg
+    sulfur_emissions = pd.Series(lwe_input.iloc[:, 16].values * 1e-9, index=years)
+    ch4_emissions = pd.Series(lwe_input.iloc[:, 5].values * 1e-9, index=years)
+    h2_emissions = pd.Series(lwe_input.iloc[:, 2].values * 1e-9, index=years)
+
+    total_aircraft_distance = pd.Series(distance_total.values, index=years)
+    operations_contrails_gain =pd.Series([0]*len(lwe_input), index=years)
+    fuel_effect_correction_contrails = pd.Series(fuel_effect_correction_contrails.values, index=years)
+
+    # calculate ERF for emissions
+    annual_co2_erf, co2_erf = ERF_co2.compute(co2_emissions)
+    nox_short_term_o3_increase_erf, nox_long_term_o3_decrease_erf, nox_ch4_decrease_erf, nox_stratospheric_water_vapor_decrease_erf, nox_erf = ERF_nox.compute(nox_emissions, erf_coefficient_nox_short_term_o3_increase, erf_coefficient_nox_long_term_o3_decrease, erf_coefficient_nox_ch4_decrease, erf_coefficient_nox_stratospheric_water_vapor_decrease)
+    contrails_erf, soot_erf, h2o_erf, sulfur_erf, aerosol_erf = ERF_other.compute(soot_emissions, h2o_emissions, sulfur_emissions, erf_coefficient_contrails, erf_coefficient_soot, erf_coefficient_h2o, erf_coefficient_sulfur, total_aircraft_distance, operations_contrails_gain, fuel_effect_correction_contrails)
+    ch4_erf, h2_erf = ERF_extra.compute(ch4_emissions, h2_emissions, erf_coefficient_ch4, erf_coefficient_h2)
+
+    # combine results for next step
+    df_climate = pd.concat([ERF_co2.df_climate, ERF_nox.df_climate, ERF_other.df_climate, ERF_extra.df_climate], axis=1)
+    total_erf = co2_erf + contrails_erf + h2o_erf + nox_erf + soot_erf + sulfur_erf + ch4_erf + h2_erf
+    df_climate["total_erf"] = total_erf
+    climate_calc = TemperatureGWPStar(parameters=params)
+    climate_calc.df_climate = df_climate
+
+    # calculate temperature change
+    climate_calc_results = climate_calc.compute(
+        contrails_gwpstar_variation_duration,
+        contrails_gwpstar_s_coefficient,
+        nox_short_term_o3_increase_gwpstar_variation_duration,
+        nox_short_term_o3_increase_gwpstar_s_coefficient,
+        nox_long_term_o3_decrease_gwpstar_variation_duration,
+        nox_long_term_o3_decrease_gwpstar_s_coefficient,
+        nox_ch4_decrease_gwpstar_variation_duration,
+        nox_ch4_decrease_gwpstar_s_coefficient,
+        nox_stratospheric_water_vapor_decrease_gwpstar_variation_duration,
+        nox_stratospheric_water_vapor_decrease_gwpstar_s_coefficient,
+        soot_gwpstar_variation_duration,
+        soot_gwpstar_s_coefficient,
+        h2o_gwpstar_variation_duration,
+        h2o_gwpstar_s_coefficient,
+        sulfur_gwpstar_variation_duration,
+        sulfur_gwpstar_s_coefficient,
+        contrails_erf,
+        nox_short_term_o3_increase_erf,
+        nox_long_term_o3_decrease_erf,
+        nox_ch4_decrease_erf,
+        nox_stratospheric_water_vapor_decrease_erf,
+        soot_erf,
+        h2o_erf,
+        sulfur_erf,
+        co2_erf,
+        total_erf,
+        co2_emissions,
+        tcre_coefficient,
+        ch4_gwpstar_variation_duration,
+        ch4_gwpstar_s_coefficient,
+        ch4_erf,
+        h2_gwpstar_variation_duration,
+        h2_gwpstar_s_coefficient,
+        h2_erf,
+    )
+
+    return climate_calc.df_climate
 
 #%% function to turn a list of dictionaries (as created by quantifying a number of activities) into a single dataframe of years and impact categories
 def total_LCIA(list_of_dic):
@@ -997,6 +1106,7 @@ def single_type_scenario(flight_start_year, flight_end_year, aircraft_dataframes
         lwe_total = lwe_fossil_LTO_ttw + lwe_fossil_CCD_ttw + lwe_saf_LTO_ttw + lwe_saf_CCD_ttw + lwe_h2_LTO_ttw + lwe_h2_CCD_ttw
         lwe_input[impact_cat+' (flight)'] = lwe_total
      
+    # do LWE calculations
     lwe_input['cirrus'] = cirrus_calc(hydrogen_share, saf_share, fleet, aircraft_char, cirrus_rf_change_h2)
        
     RF, RF_low, RF_high = emissions_to_LWE(lwe_input, flight_start_year, flight_end_year)
@@ -1006,7 +1116,25 @@ def single_type_scenario(flight_start_year, flight_end_year, aircraft_dataframes
     LCIA_df['Radiative forcing (5%)'] = list(RF_low.sum(axis = 1))
     LCIA_df['Radiative forcing (95%)'] = list(RF_high.sum(axis = 1))
     LCIA_df['Radiative forcing (excl. aviation non-CO$_2$)'] = list(RF_basic.sum(axis = 1))
-    
+
+    # additional RF calculations for sensitivity analysis
+    no_aaf_change_lwe_input = lwe_input.copy()
+    no_aaf_change_lwe_input['cirrus'] = cirrus_calc(hydrogen_share, saf_share, fleet, aircraft_char, cirrus_rf_change_h2, no_aaf_change=True)
+    RF_no_AAF_change, RF_low_no_AAF_change, RF_high_no_AAF_change = emissions_to_LWE(no_aaf_change_lwe_input, flight_start_year, flight_end_year)
+
+    LCIA_df['Radiative forcing (excl. AAF change to AIC, mean)'] = list(RF_no_AAF_change.sum(axis = 1))
+    LCIA_df['Radiative forcing (excl. AAF change to AIC, 5%)'] = list(RF_low_no_AAF_change.sum(axis = 1))
+    LCIA_df['Radiative forcing (excl. AAF change to AIC, 95%)'] = list(RF_high_no_AAF_change.sum(axis = 1))
+
+    # do GWP* calculations
+    distance_total = (fleet*aircraft_char.loc['yearly distance']).fillna(0).sum(axis=1)
+    fuel_effect_correction_contrails = calc_cirrus_change(saf_share, fleet, aircraft_char, cirrus_rf_change_h2)
+    GWPstar_df_climate = perform_GWPstar_calc(flight_start_year, flight_end_year, lwe_input, distance_total, fuel_effect_correction_contrails)
+
+    # and again for sensitivity analysis
+    fuel_effect_correction_contrails_sens = calc_cirrus_change(saf_share, fleet, aircraft_char, cirrus_rf_change_h2, no_aaf_change=True)
+    GWPstar_df_climate_sens = perform_GWPstar_calc(flight_start_year, flight_end_year, lwe_input, distance_total, fuel_effect_correction_contrails_sens)
+
     # export additional variables for plotting
     electricity_demands = LCIAs_fuels_wtt[6]
     fuel_capacities = LCIAs_fuels_wtt[7]
@@ -1031,10 +1159,5 @@ def single_type_scenario(flight_start_year, flight_end_year, aircraft_dataframes
     rpk_hc_fossil = rpk_hc*(1 - saf_share)
     rpk_hc_saf = rpk_hc*saf_share
     rpk_total_per_fuel = pd.DataFrame(np.array([rpk_hc_fossil, rpk_hc_saf, rpk_h2]).T, columns = ['Fossil kerosene', 'E-fuel', 'Hydrogen fuel'], index = np.arange(len(rpk_h2)))
-    # ops_tw_impact_per_mj = 
-    # ops_tw_impact_per_rpk = 
-    # ops_elec_per_rpk = 
     
-    # think of some way to do bar charts
-    
-    return [list_of_dic, LCIA_df, RF, RF_low, RF_high, RF_basic, fleet, inflow, total_fuel, electricity_demands, fuel_capacities, electricity_by_fuel, fuel_capacities_added, rpk_per_aircraft, mj_per_rpk, rpk_total_per_fuel, fossil_by_aircraft, saf_by_aircraft, hydrogen_by_aircraft, hydrogen_demands]
+    return [list_of_dic, LCIA_df, RF, RF_low, RF_high, RF_basic, fleet, inflow, total_fuel, electricity_demands, fuel_capacities, electricity_by_fuel, fuel_capacities_added, rpk_per_aircraft, mj_per_rpk, rpk_total_per_fuel, fossil_by_aircraft, saf_by_aircraft, hydrogen_by_aircraft, hydrogen_demands, RF_no_AAF_change, RF_low_no_AAF_change, RF_high_no_AAF_change, aircraft_char, GWPstar_df_climate, GWPstar_df_climate_sens]
