@@ -34,6 +34,19 @@ Third of all, Microsoft Excel Workbooks (`.xlsx` files, most in `LCIA_building_b
 - `plants-SSP1-PkBudg500-grid.xlsx`
 - `hydrogen-market-SSP1-PkBudg500.xlsx`
 
+And finally, `.csv` files which record the raw data plotted in figures:
+- `Fig1_rpk_aaf_overview.csv`
+- `Fig2_fleet_composition.csv`
+- `Fig3_results_fuels.csv`
+- `Fig4_results_impact_GWPstar_extra.csv`
+- `Fig4_results_impacts_LWE.csv`
+- `Xfig_CO2_stage_contribution_analysis.csv`
+- `Xfig_GWPstar_substance_contribution_analysis.csv`
+- `Xfig_impact_categories_normalised.csv`
+- `Xfig_LWE_substance_contribution_analysis.csv`
+- `Xfig_relative_performance.csv`
+- `Xfig_selected_impact_categories.csv`
+
 # Overview of Microsoft Excel Workbook files
 
 ### `foreground-LCI-data.xlsx`
@@ -48,7 +61,7 @@ These files are named using the format `[products]-[scenario].xlsx`.
 They are created as exports from the Activity Browser and as intermediate building block for the full LCA.
 Executing scenarios requires specifying a combination of these files to use, as described in `20_run_scenarios.py`.
 
-# Overview of python files with corresponding environments
+# Overview of python/jupyter notebook files with corresponding environments
 
 ### `_01_running_premise.py` (environment: see `env-premise.yml`)
 Uses the premise library to create a database with superstructure file. 
@@ -73,15 +86,19 @@ This script defines the definition of scenario variables.
 Meaning that, when other scripts refer to e.g. "low" or "high" development for a technology, the meaning of this is given by this script.
 
 ### `_12_LWE_function.py` (environment: see `env-gen.yml`)
-The functions used in applying the LWE method are contained in this script.
+The functions used in calculating warming-equivalent emissions following the LWE method are contained in this script.
+
+### `_13_GWPstar_functions.py` (environment: see `env-gen.yml`)
+The functions used in calculating warming-equivalent emissions following the GWP\* method are contained in this script.
 
 ### `_20_run_scenarios.py` (environment: see `env-gen.yml`)
-This is the central script for both executing scenarios and visualising them.
-It can make use of the `.pkl` files included in this repository.
+This is the central script for executing scenarios and storing their results in a `.pkl` format.
 
 ### `_21_plot_scenarios.py` (environment: see `env-gen.yml`)
 This script contains a variety of functions used in plotting scenario results.
-Note that adjustments must be made in both 
+
+### `_22_handle_plots.ipynb` (environment: see `env-gen.yml`)
+This jupyter notebook contains additional functions used in plotting scenario results and executes these functions.
 
 # Description of workflow
 This workflow assumes that the `[products]-[scenario].xlsx` files in this repository are being used.
@@ -90,13 +107,12 @@ Therefore, the scripts with `_0X` numbering are not utilised in the workflow des
 
 1. Create a python environment to use, analogue to the one described in `env-gen.yml`.
 2. To a folder of choice, download the scripts with `_1X` and `_2X` numbering and the `LCIA_building_blocks` folder, containing the `[products]-[scenario].xlsx` files.
-3. In `11_define_scenarios.py`, adjust the definition of scenario variables, if desired *(see note 1 below)*.
-4. In `20_run_scenarios.py`, choose which scenario(s) to model.
-5. In `20_run_scenarios.py` and `21_plot_scenarios.py`, choose which scenario(s) to visualise *(see note 2 below)*.
-6. In `20_run_scenarios.py`, choose which visualisations to use.
-7. Execute `20_run_scenarios.py`.
+3. In `_11_define_scenarios.py`, adjust the definition of scenario variables, if desired *(see note 1 below)*.
+4. In `_20_run_scenarios.py`, choose which scenario(s) to model.
+5. Execute `_20_run_scenarios.py`. Scenario results are saved in a `\pickled_scenario_results` folder.
+6. In `_21_plot_scenarios.py` and `_22_handle_plots.ipynb`, choose which scenario(s) to visualise *(see note 2 below)*.
+6. Execute `_22_handle_plots.ipynb` for the selected scenarios and visuals. Figures are saved in a `\figures` folder and `.csv` files with the corresponding data in a `\figures_data` folder.
 
-**Note 1**: Depending on the number of scenarios selected, this step can save a lot of time. To save time in repeated runs, the code is set up to save scenario results in `.pkl` files. Such files are available upon request, but are excluded in this repository due to the files' prohibitive size.
+**Note 1**: Depending on the number of scenarios selected, this step takes a lot of time. To save time in repeated runs, the code is set up to save scenario results in `.pkl` files. Such files are available upon request, but are excluded in this repository due to the files' prohibitive size. When using these files, steps 1-5 above can be skipped.
 
-**Note 2**: In most functions of `21_plot_scenarios.py`, the figure labels are currently hard-coded to match the illustrative scenarios selected in the text.
-If you want to use these functions for other scenarios, the labels must be individually adjusted.
+**Note 2**: In most functions of `_21_plot_scenarios.py` and `_22_handle_plots.ipynb`, it is presumed that nine scenarios have been selected, possibly in three sets of three, and possibly with the figure labels hard-coded into the functions. They might therefore need considerable adjustment in order to visualise any custom combination of scenarios.
